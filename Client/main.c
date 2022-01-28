@@ -4,13 +4,15 @@
 #include <errno.h>  //For errno - the error number
 #include <stdint.h> //for numbers and such
 
-//
 #include "checksum.h"
-
+//for netinet
+#include "tcp.h"
+#include "ip.h"
 //! Windows headers
-//#include <WinSock.h>
 #include <winsock2.h>
+//#include <WinSock.h>
 #include <io.h>
+#include <Ws2tcpip.h>
 
 // //! these are all unix headers
 // #include <sys/socket.h>
@@ -38,8 +40,7 @@ int main(void)
     wVersionRequested = MAKEWORD(2, 2);
 
     err = WSAStartup(wVersionRequested, &wsaData);
-
-    //
+    //ipv4, raw socket, tcp connection
     int s = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
     if (s == -1)
     {
@@ -47,7 +48,12 @@ int main(void)
         perror("Failed to create socket\n");
         exit(1);
     }
+    else
+    {
+        //print s to the console
+        printf("socket: %d\n", s);
+    }
 
-    //print s to the console
-    printf("socket: %d\n", s);
+    WSACleanup();
+    exit(0);
 }

@@ -21,6 +21,21 @@
 		"*.html": "html",
 		"checksum.h": "c",
 		"stdio.h": "c",
-		"winsock.h": "c"
+		"winsock.h": "c",
+		"ws2tcpip.h": "c",
+		"io.h": "c",
+		"winsock2.h": "c",
+		"wsipv6ok.h": "c",
+		"windows.h": "c",
+		"_timeval.h": "c",
+		"_bsd_types.h": "c",
+		"inaddr.h": "c",
+		"_socket_types.h": "c",
+		"_fd_types.h": "c",
+		"_ip_types.h": "c",
+		"_xmitfile.h": "c",
+		"ws2ipdef.h": "c",
+		"_ip_mreq1.h": "c",
+		"winapifamily.h": "c"
 	}
 }

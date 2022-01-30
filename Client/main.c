@@ -1,59 +1,117 @@
-#include <stdio.h>  //for printf
-#include <string.h> //memset
-#include <stdlib.h> //for exit(0);
-#include <errno.h>  //For errno - the error number
-#include <stdint.h> //for numbers and such
+//? 80% from https://docs.microsoft.com/en-us/windows/win32/winsock/finished-server-and-client-code
+//I just took notes on this to test, some code is tweaked to figure out how  to better use it
 
-#include "checksum.h"
-//for netinet
-#include "tcp.h"
-#include "ip.h"
-//! Windows headers
+#ifndef UNICODE
+#define UNICODE
+#endif
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <winsock2.h>
-//#include <WinSock.h>
-#include <io.h>
 #include <Ws2tcpip.h>
+#include <stdio.h>
+#ifdef IPV6STRICT
+#undef IPV6STRICT
+#endif
+#define DEFAULT_BUFLEN 512
+#define DEFAULT_PORT "27015"
+// Link with ws2_32.lib
+#pragma comment(lib, "Ws2_32.lib")
 
-// //! these are all unix headers
-// #include <sys/socket.h>
-// #include <netinet/tcp.hc>	//Provides declarations for tcp header
-// #include <netinet/ip.h>	//Provides declarations for ip header
-// #include <arpa/inet.h> // inet_addr
-// #include <unistd.h> // sleep()
-
-struct pseudo_header
+int main()
 {
-    uint32_t source_address;
-    uint32_t dest_address;
-    uint8_t placeholder;
-    uint8_t protocol;
-    uint16_t tcp_length;
-};
 
-int main(void)
-{
-    WORD wVersionRequested;
+    //----------------------
+    // Declare and initialize variables.
+    int test = 4;
     WSADATA wsaData;
-    int err;
+    int iResult;
 
-    /* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
-    wVersionRequested = MAKEWORD(2, 2);
+    SOCKET ConnectSocket = INVALID_SOCKET;
+    struct sockaddr_in clientService;
 
-    err = WSAStartup(wVersionRequested, &wsaData);
-    //ipv4, raw socket, tcp connection
-    int s = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-    if (s == -1)
+    char *sendbuf = "this is a test";
+    char recvbuf[DEFAULT_BUFLEN];
+    int recvbuflen = DEFAULT_BUFLEN;
+
+    //----------------------
+    // Initialize Winsock
+    iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (iResult != NO_ERROR)
     {
-        //socket creation failed, may be because of non-root privileges
-        perror("Failed to create socket\n");
-        exit(1);
-    }
-    else
-    {
-        //print s to the console
-        printf("socket: %d\n", s);
+        printf("WSAStartup failed: %d\n", iResult);
+        return 1;
     }
 
+    //----------------------
+    // Create a SOCKET for connecting to server
+    ConnectSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (ConnectSocket == INVALID_SOCKET)
+    {
+        printf("Error at socket(): %ld\n", WSAGetLastError());
+        WSACleanup();
+        return 1;
+    }
+
+    //----------------------
+    // The sockaddr_in structure specifies the address family,
+    // IP address, and port of the server to be connected to.
+    clientService.sin_family = AF_INET;
+    clientService.sin_addr.s_addr = inet_addr("127.0.0.1");
+    clientService.sin_port = htons(27015);
+
+    //----------------------
+    // Connect to server.
+    iResult = connect(ConnectSocket, (SOCKADDR *)&clientService, sizeof(clientService));
+    if (iResult == SOCKET_ERROR)
+    {
+        closesocket(ConnectSocket);
+        printf("Unable to connect to server: %ld\n", WSAGetLastError());
+        WSACleanup();
+        return 1;
+    }
+
+    // Send an initial buffer
+
+    // shutdown the connection since no more data will be sent
+
+    // Receive until the peer closes the connection
+    do
+    {
+        iResult = send(ConnectSocket, sendbuf, (int)strlen(sendbuf), 0);
+        if (iResult == SOCKET_ERROR)
+        {
+            printf("send failed: %d\n", WSAGetLastError());
+            closesocket(ConnectSocket);
+            WSACleanup();
+            return 1;
+        }
+
+        printf("Bytes Sent: %ld\n", iResult);
+        iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+        if (iResult > 0)
+            printf("Bytes received: %d\n", iResult);
+        else if (iResult == 0)
+            printf("Connection closed\n");
+        else
+            printf("recv failed: %d\n", WSAGetLastError());
+        test--;
+        printf("test: %d\n", test);
+    } while (iResult > 0 && test > 1);
+    iResult = shutdown(ConnectSocket, SD_SEND);
+    if (iResult == SOCKET_ERROR)
+    {
+        printf("shutdown failed: %d\n", WSAGetLastError());
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    // cleanup
+    closesocket(ConnectSocket);
     WSACleanup();
-    exit(0);
+
+    return 0;
 }

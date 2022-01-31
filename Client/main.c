@@ -12,6 +12,7 @@
 #include <winsock2.h>
 #include <Ws2tcpip.h>
 #include <stdio.h>
+//prevents double definition of sockaddr_in
 #ifdef IPV6STRICT
 #undef IPV6STRICT
 #endif
@@ -74,20 +75,26 @@ int main()
     }
 
     // Send an initial buffer
-
+    iResult = send(ConnectSocket, sendbuf, (int)strlen(sendbuf), 0);
+    if (iResult == SOCKET_ERROR)
+    {
+        printf("send failed: %d\n", WSAGetLastError());
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
     // shutdown the connection since no more data will be sent
-
+    iResult = shutdown(ConnectSocket, SD_SEND);
+    if (iResult == SOCKET_ERROR)
+    {
+        printf("shutdown failed: %d\n", WSAGetLastError());
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
     // Receive until the peer closes the connection
     do
     {
-        iResult = send(ConnectSocket, sendbuf, (int)strlen(sendbuf), 0);
-        if (iResult == SOCKET_ERROR)
-        {
-            printf("send failed: %d\n", WSAGetLastError());
-            closesocket(ConnectSocket);
-            WSACleanup();
-            return 1;
-        }
 
         printf("Bytes Sent: %ld\n", iResult);
         iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
@@ -100,14 +107,6 @@ int main()
         test--;
         printf("test: %d\n", test);
     } while (iResult > 0 && test > 1);
-    iResult = shutdown(ConnectSocket, SD_SEND);
-    if (iResult == SOCKET_ERROR)
-    {
-        printf("shutdown failed: %d\n", WSAGetLastError());
-        closesocket(ConnectSocket);
-        WSACleanup();
-        return 1;
-    }
 
     // cleanup
     closesocket(ConnectSocket);

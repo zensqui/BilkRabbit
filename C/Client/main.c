@@ -16,6 +16,7 @@
 #ifdef IPV6STRICT
 #undef IPV6STRICT
 #endif
+
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 // Link with ws2_32.lib
